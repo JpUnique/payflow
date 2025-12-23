@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/JpUnique/payflow/internal/repository"
 	"github.com/google/uuid"
 )
 
@@ -19,6 +20,14 @@ func CreatePayment(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid request payload", http.StatusBadRequest)
 		return
 	}
+
+	 err = repository.CreateTransaction(uuid.New(), req.Amount, req.Currency)
+	 if err != nil {
+	     http.Error(w, "Failed to create transaction", http.StatusInternalServerError)
+	     return
+	}
+
+	// For demonstration, we will just return a success response
 	response := map[string]interface{}{
 		"transaction_id": uuid.New().String(),
 		"status":         "PENDING",

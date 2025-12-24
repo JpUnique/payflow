@@ -21,7 +21,7 @@ func CreatePayment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	 err = repository.CreateTransaction(uuid.New(), req.Amount, req.Currency)
+	 err = repository.Create(uuid.New(), req.Amount, req.Currency)
 	 if err != nil {
 	     http.Error(w, "Failed to create transaction", http.StatusInternalServerError)
 	     return

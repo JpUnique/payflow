@@ -13,26 +13,49 @@ type PaymentRequest struct {
 	Currency string `json:"currency"`
 }
 
-func CreatePayment(w http.ResponseWriter, r *http.Request) {
-	var req PaymentRequest
-	err := json.NewDecoder(r.Body).Decode(&req)
-	if err != nil {
-		http.Error(w, "Invalid request payload", http.StatusBadRequest)
-		return
-	}
+func CreatePayment(repo *repository.TransactionRepository) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 
-	 err = repository.Create(uuid.New(), req.Amount, req.Currency)
-	 if err != nil {
-	     http.Error(w, "Failed to create transaction", http.StatusInternalServerError)
-	     return
-	}
+		// Extract Idempotency-Key from headers
+		idempotencyKey := r.Header.Get("Idempotency-Key")
+		if idempotencyKey == "" {
+			http.Error(w, "Missing Idempotency-Key header", http.StatusBadRequest)
+			return
+		}
 
-	// For demonstration, we will just return a success response
-	response := map[string]interface{}{
-		"transaction_id": uuid.New().String(),
-		"status":         "PENDING",
-	}
+		var req PaymentRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "Invalid request payload", http.StatusBadRequest)
+			return
+		}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+		txID := uuid.New()
+
+		err := repo.Create(
+			r.Context(),
+			txID,
+			req.Amount,
+			req.Currency,
+		)
+		if err != nil {
+			http.Error(w, "Failed to create transaction", http.StatusInternalServerError)
+			return
+		}
+
+		// Idempotent transaction creation
+		txID, isIdemtpotent, err := repo.CreateIdempotent(r.Context(), idempotencyKey, req.Amount, req.Currency)
+		if err != nil {
+			http.Error(w, "Failed to process idempotent transaction", http.StatusInternalServerError)
+			return
+		}
+
+		response := map[string]interface{}{
+			"transaction_id": txID.String(),
+			"status":         "PENDING",
+			"idempotent":     isIdemtpotent,
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+	}
 }

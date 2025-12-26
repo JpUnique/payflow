@@ -5,12 +5,14 @@ import (
 )
 
 type Config struct {
-	DBUrl string
+	DBUrl     string
+	RedisAddr string
 }
 
 func Load() *Config {
 	return &Config{
-		DBUrl: getEnv("DATABASE_URL", "postgres://payflow:payflow@postgres:5432/payflow?sslmode=disable"),
+		DBUrl:     getEnv("DATABASE_URL", "postgres://payflow:payflow@postgres:5432/payflow?sslmode=disable"),
+		RedisAddr: getEnv("REDIS_ADDR", "redis:6379"),
 	}
 }
 

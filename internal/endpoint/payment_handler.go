@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/JpUnique/payflow/internal/repository"
-	"github.com/google/uuid"
 )
 
 type PaymentRequest struct {
@@ -26,19 +25,6 @@ func CreatePayment(repo *repository.TransactionRepository) http.HandlerFunc {
 		var req PaymentRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			http.Error(w, "Invalid request payload", http.StatusBadRequest)
-			return
-		}
-
-		txID := uuid.New()
-
-		err := repo.Create(
-			r.Context(),
-			txID,
-			req.Amount,
-			req.Currency,
-		)
-		if err != nil {
-			http.Error(w, "Failed to create transaction", http.StatusInternalServerError)
 			return
 		}
 

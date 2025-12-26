@@ -2,9 +2,11 @@ package repository
 
 import (
 	"context"
+	"log"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 )
@@ -49,6 +51,11 @@ func (r *TransactionRepository) CreateIdempotent(
 	// redis miss, proceed with DB transaction
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
+		log.Printf(
+			"[IDEMPOTENCY] redis_hit key=%s tx_id=%s",
+			idempotencyKey,
+			val,
+		)
 		return uuid.Nil, false, err
 	}
 	defer tx.Rollback(ctx)
@@ -62,9 +69,17 @@ func (r *TransactionRepository) CreateIdempotent(
 	).Scan(&existingTxID)
 
 	if err == nil {
+		log.Printf(
+			"[IDEMPOTENCY] db_hit key=%s tx_id=%s",
+			idempotencyKey,
+			existingTxID,
+		)
 		// Found in postgres then write to redis for next time caching
-		r.rdb.Set(ctx, idempotencyKey, existingTxID.String(), 1*time.Hour)
+		r.rdb.Set(ctx, idempotencyKey, existingTxID.String(), 24*time.Hour)
 		return existingTxID, true, nil
+	}
+	if err != pgx.ErrNoRows {
+		return uuid.Nil, false, err
 	}
 
 	// Insert new transaction

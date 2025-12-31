@@ -5,14 +5,16 @@ import (
 )
 
 type Config struct {
-	DBUrl     string
-	RedisAddr string
+	DBUrl        string
+	RedisAddr    string
+	KafkaBrokers []string
 }
 
 func Load() *Config {
 	return &Config{
-		DBUrl:     getEnv("DATABASE_URL", "postgres://payflow:payflow@postgres:5432/payflow?sslmode=disable"),
-		RedisAddr: getEnv("REDIS_ADDR", "redis:6379"),
+		DBUrl:        getEnv("DATABASE_URL", "postgres://payflow:payflow@postgres:5432/payflow?sslmode=disable"),
+		RedisAddr:    getEnv("REDIS_ADDR", "redis:6379"),
+		KafkaBrokers: []string{getEnv("KAFKA_BROKER", "kafka:9092")},
 	}
 }
 

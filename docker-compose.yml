@@ -15,6 +15,15 @@ services:
       DATABASE_URL: postgres://payflow:payflow@postgres:5432/payflow?sslmode=disable
       REDIS_ADDR: redis:6379
 
+  processor:
+    build:
+        context: .
+        dockerfile: docker/processor.Dockerfile
+    depends_on:
+        - postgres
+        - kafka
+
+
   postgres:
     image: postgres:15
     environment:

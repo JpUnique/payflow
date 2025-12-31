@@ -115,3 +115,21 @@ func (r *TransactionRepository) CreateIdempotent(
 
 	return txID, false, nil
 }
+
+func (r *TransactionRepository) UpdateStatus(
+	ctx context.Context,
+	txID string,
+	status string,
+) error {
+
+	_, err := r.db.Exec(
+		ctx,
+		`UPDATE transactions
+		 SET status = $1
+		 WHERE id = $2`,
+		status,
+		txID,
+	)
+
+	return err
+}

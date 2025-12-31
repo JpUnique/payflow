@@ -8,6 +8,7 @@ import (
 
 	"github.com/JpUnique/payflow/internal/config"
 	"github.com/JpUnique/payflow/internal/endpoint"
+	"github.com/JpUnique/payflow/internal/messaging"
 	"github.com/JpUnique/payflow/internal/repository"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
@@ -38,6 +39,12 @@ func main() {
 	}
 	defer rdb.Close()
 
+	producer := messaging.NewKafkaProducer(
+		cfg.KafkaBrokers,
+		"payment.created",
+	)
+	defer producer.Close()
+
 	//repository initialization
 	txRepo := repository.NewTransactionRepository(db, rdb)
 
@@ -51,7 +58,7 @@ func main() {
 		w.Write([]byte("OK"))
 	})
 
-	mux.Handle("/payment", endpoint.CreatePayment(txRepo))
+	mux.Handle("/payment", endpoint.CreatePayment(txRepo, producer))
 
 	log.Println("Starting server on :8080")
 	log.Fatal(http.ListenAndServe(":8080", mux))
